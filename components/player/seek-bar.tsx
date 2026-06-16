@@ -24,6 +24,7 @@ export function SeekBar({
   const [scrubbing, setScrubbing] = React.useState<number | null>(null)
   const display = scrubbing ?? value
   const safeMax = max > 0 ? max : 0
+  const clamped = Math.min(Math.max(display, 0), safeMax)
 
   const fmt = (n: number) => {
     const s = formatDuration(n)
@@ -31,10 +32,12 @@ export function SeekBar({
   }
 
   return (
-    <div className={cn("flex w-full items-center gap-2", className)}>
+    // The scrubber is LTR even in the RTL app: progress fills left→right,
+    // elapsed on the left, total on the right — the universal media convention.
+    <div dir="ltr" className={cn("flex w-full items-center gap-2", className)}>
       {showLabels && (
         <span className="w-10 shrink-0 text-end text-[11px] tabular-nums text-muted-foreground">
-          {fmt(display)}
+          {fmt(clamped)}
         </span>
       )}
       <Slider

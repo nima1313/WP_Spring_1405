@@ -35,7 +35,10 @@ export function TransportControls({
   const big = size === "lg"
 
   return (
+    // Transport controls stay LTR even in the RTL app — prev←play→next and the
+    // skip icons map to a universal, direction-agnostic layout (as on Spotify).
     <div
+      dir="ltr"
       className={cn(
         "flex items-center justify-center",
         big ? "gap-6" : "gap-3"
