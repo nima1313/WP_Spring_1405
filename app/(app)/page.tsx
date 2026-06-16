@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Play, Sparkles } from "lucide-react"
 
+import { CoverImage } from "@/components/common/cover-image"
 import { AlbumCard } from "@/components/music/album-card"
 import { PlaylistCard } from "@/components/music/playlist-card"
 import { Section } from "@/components/music/section"
@@ -70,12 +71,25 @@ export default function HomePage() {
     <div className="space-y-8 pt-2">
       {/* Greeting + hero */}
       <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-primary/30 via-fuchsia-500/15 to-transparent p-6 md:p-8">
-        <p className="text-sm text-muted-foreground">{t("home.forYou")}</p>
-        <h1 className="mt-1 font-display text-2xl font-extrabold md:text-3xl">
-          {t("home.greeting")}
-          {user ? `، ${user.displayName}` : ""} 👋
-        </h1>
-        <p className="mt-2 max-w-md text-sm text-muted-foreground">
+        <div className="flex items-center gap-4">
+          {user && (
+            <CoverImage
+              seed={user.handle}
+              src={user.avatarUrl || undefined}
+              alt={user.displayName}
+              className="size-14 shrink-0"
+              rounded="rounded-full"
+            />
+          )}
+          <div>
+            <p className="text-sm text-muted-foreground">{t("home.forYou")}</p>
+            <h1 className="mt-1 font-display text-2xl font-extrabold md:text-3xl">
+              {t("home.greeting")}
+              {user ? `، ${user.displayName}` : ""} 👋
+            </h1>
+          </div>
+        </div>
+        <p className="mt-3 max-w-md text-sm text-muted-foreground">
           {t("home.earlyAccessHint")}
         </p>
         {singles.length > 0 && (
