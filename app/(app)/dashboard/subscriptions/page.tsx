@@ -126,7 +126,7 @@ export default function SubscriptionsPage() {
           {t("dash.updatePrices")}
         </Button>
         <p className="text-xs text-muted-foreground">
-          {t("settings.expiresOn")}: {currency}
+          {t("dash.priceHint")} ({currency})
         </p>
       </form>
 
