@@ -24,12 +24,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
+import { SubscriptionDialog } from "@/components/settings/subscription-dialog"
 import { TierBadge } from "@/components/common/tier-badge"
 import { deleteAccount } from "@/lib/api/users"
-import { usePrices } from "@/lib/queries"
 import { useI18n, useT } from "@/lib/i18n"
 import type { Locale } from "@/lib/i18n"
-import { formatPrice, toFaDigits } from "@/lib/format"
+import { toFaDigits } from "@/lib/format"
 import { toJalali } from "@/lib/jalali"
 import { cn } from "@/lib/utils"
 import { useAuthStore } from "@/store/auth-store"
@@ -69,13 +69,13 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
   const user = useAuthStore((s) => s.user)
   const clear = useAuthStore((s) => s.clear)
-  const { data: prices } = usePrices()
 
   const volume = usePlayerStore((s) => s.volume)
   const setVolume = usePlayerStore((s) => s.setVolume)
 
   const [notifEnabled, setNotifEnabled] = React.useState(true)
   const [deleteOpen, setDeleteOpen] = React.useState(false)
+  const [planOpen, setPlanOpen] = React.useState(false)
 
   if (!user) return null
 
@@ -86,14 +86,6 @@ export default function SettingsPage() {
       router.replace("/login")
     })
   }
-
-  const upgradePrice =
-    prices &&
-    (user.tier === "basic"
-      ? formatPrice(prices.silver, prices.currency, locale)
-      : user.tier === "silver"
-        ? formatPrice(prices.gold, prices.currency, locale)
-        : null)
 
   return (
     <div className="space-y-6 pt-2">
@@ -117,15 +109,11 @@ export default function SettingsPage() {
                 {toJalali(user.subscriptionExpiresAt)}
               </p>
             </div>
-            {user.tier !== "gold" && (
-              <Button
-                onClick={() => toast.info(t("settings.upgradeHint"))}
-                className="shrink-0"
-              >
-                {t("settings.upgrade")}
-                {upgradePrice ? ` · ${upgradePrice}` : ""}
-              </Button>
-            )}
+            <Button onClick={() => setPlanOpen(true)} className="shrink-0">
+              {user.tier === "gold"
+                ? t("settings.managePlan")
+                : t("settings.upgrade")}
+            </Button>
           </div>
         </div>
       </section>
@@ -230,6 +218,8 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SubscriptionDialog open={planOpen} onOpenChange={setPlanOpen} />
     </div>
   )
 }
