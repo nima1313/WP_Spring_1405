@@ -49,6 +49,7 @@ export default function StudioPage() {
   const [lyrics, setLyrics] = React.useState("")
   const [featured, setFeatured] = React.useState<string[]>([])
   const [audioName, setAudioName] = React.useState("")
+  const [coverUrl, setCoverUrl] = React.useState("")
   const [editing, setEditing] = React.useState<Track | null>(null)
   const [editTitle, setEditTitle] = React.useState("")
   const [editLyrics, setEditLyrics] = React.useState("")
@@ -84,6 +85,7 @@ export default function StudioPage() {
         lyrics: lyrics.trim() || undefined,
         featuredArtistIds: featured,
         audioUrl: BUNDLED_AUDIO(works.length + 1),
+        coverUrl: coverUrl || undefined,
       },
       {
         onSuccess: () => {
@@ -93,6 +95,7 @@ export default function StudioPage() {
           setLyrics("")
           setFeatured([])
           setAudioName("")
+          setCoverUrl("")
         },
       }
     )
@@ -217,6 +220,31 @@ export default function StudioPage() {
             value={lyrics}
             onChange={(e) => setLyrics(e.target.value)}
           />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="cover">{t("studio.cover")}</Label>
+          <div className="flex items-center gap-3">
+            <CoverImage
+              seed={title || "cover"}
+              src={coverUrl || undefined}
+              alt={t("studio.cover")}
+              className="size-16 shrink-0"
+              rounded="rounded-xl"
+            />
+            <Input
+              id="cover"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                const reader = new FileReader()
+                reader.onload = () => setCoverUrl(String(reader.result))
+                reader.readAsDataURL(file)
+              }}
+            />
+          </div>
         </div>
 
         <div className="space-y-1.5">
