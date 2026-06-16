@@ -7,6 +7,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -72,27 +73,29 @@ export function TrackActions({
         <MoreHorizontal className="size-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="glass-strong w-56">
-        <DropdownMenuLabel className="flex items-center gap-2">
-          <ListPlus className="size-4" />
-          {t("browse.addToPlaylist")}
-        </DropdownMenuLabel>
-        {playlists.length === 0 ? (
-          <DropdownMenuItem disabled>{t("playlists.empty")}</DropdownMenuItem>
-        ) : (
-          playlists.map((pl) => {
-            const contains = pl.trackIds.includes(track.id)
-            return (
-              <DropdownMenuCheckboxItem
-                key={pl.id}
-                checked={contains}
-                onCheckedChange={() => toggle(pl.id, contains)}
-                onSelect={(e) => e.preventDefault()}
-              >
-                {pl.name}
-              </DropdownMenuCheckboxItem>
-            )
-          })
-        )}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="flex items-center gap-2">
+            <ListPlus className="size-4" />
+            {t("browse.addToPlaylist")}
+          </DropdownMenuLabel>
+          {playlists.length === 0 ? (
+            <DropdownMenuItem disabled>{t("playlists.empty")}</DropdownMenuItem>
+          ) : (
+            playlists.map((pl) => {
+              const contains = pl.trackIds.includes(track.id)
+              return (
+                <DropdownMenuCheckboxItem
+                  key={pl.id}
+                  checked={contains}
+                  onCheckedChange={() => toggle(pl.id, contains)}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  {pl.name}
+                </DropdownMenuCheckboxItem>
+              )
+            })
+          )}
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onDownload} disabled={!canDownload}>
           <Download className="size-4" />

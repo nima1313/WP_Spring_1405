@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -58,12 +59,16 @@ export function UserMenu() {
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="glass-strong w-56">
-        <DropdownMenuLabel>
-          <div className="flex flex-col">
-            <span className="font-semibold">{user.displayName}</span>
-            <span className="text-xs text-muted-foreground">{user.handle}</span>
-          </div>
-        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>
+            <div className="flex flex-col">
+              <span className="font-semibold">{user.displayName}</span>
+              <span className="text-xs text-muted-foreground">
+                {user.handle}
+              </span>
+            </div>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push(`/u/${user.handle}`)}>
           <UserIcon className="size-4" />
