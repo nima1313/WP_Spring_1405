@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next"
-import { Sora, Vazirmatn } from "next/font/google"
+import { Vazirmatn } from "next/font/google"
+// 1. Import localFont instead of Sora
+import localFont from "next/font/local"
 
 import "./globals.css"
 import { Providers } from "@/components/providers"
@@ -13,8 +15,24 @@ const vazirmatn = Vazirmatn({
   display: "swap",
 })
 
-const sora = Sora({
-  subsets: ["latin"],
+const shabnam = localFont({
+  src: [
+    {
+      path: "../public/fonts/shabnam/Shabnam-Light.woff2",
+      weight: "200",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/shabnam/Shabnam.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/shabnam/Shabnam-Bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--font-display",
   display: "swap",
 })
@@ -23,7 +41,11 @@ export const metadata: Metadata = {
   title: "نوا | Nava",
   description: "سرویس استریم موسیقی نوا — موسیقی، بی‌مرز.",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "Nava", statusBarStyle: "black-translucent" },
+  appleWebApp: {
+    capable: true,
+    title: "Nava",
+    statusBarStyle: "black-translucent",
+  },
 }
 
 export const viewport: Viewport = {
@@ -41,7 +63,7 @@ export default function RootLayout({
       lang="fa"
       dir="rtl"
       suppressHydrationWarning
-      className={cn(vazirmatn.variable, sora.variable, "antialiased")}
+      className={cn(vazirmatn.variable, shabnam.variable, "antialiased")}
     >
       <body>
         <ThemeProvider defaultTheme="dark">
