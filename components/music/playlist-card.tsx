@@ -35,7 +35,7 @@ export function PlaylistCard({
           className="aspect-square w-full"
         />
         <span className="absolute bottom-2 end-2 grid size-9 place-items-center rounded-full bg-black/50 backdrop-blur">
-          <ListMusic className="size-4" />
+          <ListMusic className="size-4 text-white" />
         </span>
       </div>
       <p className="truncate text-sm font-semibold">{playlist.name}</p>

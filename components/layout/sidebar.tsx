@@ -50,7 +50,7 @@ export function Sidebar() {
     href === "/" ? pathname === "/" : pathname.startsWith(href)
 
   return (
-      <aside className="bg-sidebar/50 shadow-md fixed top-4 bottom-4 start-4 z-40 hidden w-[248px] flex-col rounded-3xl glass p-4 md:flex">
+      <aside className="bg-sidebar/70 shadow-md fixed top-4 bottom-4 start-4 z-40 hidden w-[248px] flex-col rounded-3xl glass p-4 md:flex">
       <div className="px-2 pt-1 pb-4">
         <Brand />
       </div>

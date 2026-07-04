@@ -36,7 +36,7 @@ export function AlbumCard({
           className="aspect-square w-full"
         />
         <span className="absolute bottom-2 end-2 grid size-9 place-items-center rounded-full bg-black/50 text-foreground opacity-0 backdrop-blur transition group-hover:opacity-100">
-          <Disc3 className="size-4" />
+          <Disc3 className="size-4 text-white" />
         </span>
       </Link>
       <Link
