@@ -32,7 +32,7 @@ export function Topbar() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={t("common.search")}
-          className="h-11 w-full rounded-2xl glass ps-10 pe-4 text-sm outline-none transition placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/40"
+          className="bg-sidebar/70 shadow-sm h-11 w-full rounded-2xl glass ps-10 pe-4 text-sm outline-none transition placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/40"
         />
       </form>
 

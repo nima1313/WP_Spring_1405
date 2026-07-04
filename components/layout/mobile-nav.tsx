@@ -29,7 +29,7 @@ export function MobileNav() {
     href === "/" ? pathname === "/" : pathname.startsWith(href)
 
   return (
-    <nav className="fixed bottom-4 start-3 end-3 z-40 flex items-center justify-around rounded-2xl glass-strong px-2 py-2 md:hidden">
+    <nav className="bg-sidebar/90 shadow-md fixed bottom-4 start-3 end-3 z-40 flex items-center justify-around rounded-2xl glass-strong px-2 py-2 md:hidden ">
       {items.map(({ href, label, icon: Icon, center }) =>
         center ? (
           <Link

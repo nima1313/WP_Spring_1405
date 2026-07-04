@@ -34,7 +34,7 @@ export function PlayerBar() {
     <>
       {/* Desktop floating bar */}
       <div className="fixed bottom-4 z-50 hidden start-[272px] end-6 md:block">
-        <div className="glass-strong glow-sm grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)] items-center gap-4 rounded-3xl px-4 py-3">
+        <div className="bg-sidebar/90 glass-strong glow-sm grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)] items-center gap-4 rounded-3xl px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             <CoverImage
               seed={current.id}
@@ -94,7 +94,7 @@ export function PlayerBar() {
       <button
         type="button"
         onClick={() => setExpanded(true)}
-        className="glass-strong fixed bottom-[84px] z-50 start-3 end-3 flex items-center gap-3 overflow-hidden rounded-2xl p-2 text-start md:hidden"
+        className="bg-sidebar/90 shadow-md glass-strong fixed bottom-[84px] z-50 start-3 end-3 flex items-center gap-3 overflow-hidden rounded-2xl p-2 text-start md:hidden"
       >
         <CoverImage
           seed={current.id}
