@@ -25,6 +25,7 @@ export function PlayerBar() {
   const setQueueOpen = useUIStore((s) => s.setQueueOpen)
   const setLyricsOpen = useUIStore((s) => s.setLyricsOpen)
   const setExpanded = useUIStore((s) => s.setPlayerExpanded)
+  const toggleMute = usePlayerStore((s) => s.toggleMute)
 
   if (!current) return null
   const artist = artists[current.artistId]
@@ -91,11 +92,12 @@ export function PlayerBar() {
       </div>
 
       {/* Mobile mini-player */}
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setExpanded(true)}
         className="bg-sidebar/90 shadow-md glass-strong fixed bottom-[84px] z-50 start-3 end-3 flex items-center gap-3 overflow-hidden rounded-2xl p-2 text-start md:hidden"
-      >
+>
         <CoverImage
           seed={current.id}
           src={current.coverUrl || undefined}
@@ -137,12 +139,15 @@ export function PlayerBar() {
         >
           <SkipForward className="size-5 fill-current" />
         </span>
+        <span onClick={(e) => e.stopPropagation()}>
+  <VolumeControl />
+</span>
         <ChevronUp className="size-4 shrink-0 text-muted-foreground" />
         <span
           className="absolute inset-x-0 bottom-0 h-0.5 bg-primary"
           style={{ width: `${pct}%` }}
         />
-      </button>
+      </div>
     </>
   )
 }

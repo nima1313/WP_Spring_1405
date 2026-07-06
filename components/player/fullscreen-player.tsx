@@ -14,7 +14,7 @@ import { tierConfig } from "@/lib/subscriptions"
 import { useAuthStore } from "@/store/auth-store"
 import { usePlayerStore } from "@/store/player-store"
 import { useUIStore } from "@/store/ui-store"
-
+import { VolumeControl } from "@/components/player/volume"
 export function FullscreenPlayer() {
   const t = useT()
   const { locale } = useI18n()
@@ -115,7 +115,7 @@ export function FullscreenPlayer() {
             <SeekBar value={currentTime} max={duration} onSeek={seek} />
 
             <TransportControls size="lg" />
-
+              <VolumeControl className="mx-auto" />
             {current.lyrics && (
               <button
                 type="button"
