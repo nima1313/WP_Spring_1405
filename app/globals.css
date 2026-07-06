@@ -173,10 +173,11 @@ body {
 
 /* ---- Glass utilities ---- */
 @utility glass {
-  background-color: color-mix(in oklab, white 7%, transparent);
+  background-color: color-mix(in oklab, var(--card) 100%, transparent);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
-  border: 1px solid color-mix(in oklab, white 12%, transparent);
+  border: 1px solid
+    color-mix(in oklab, var(--muted-foreground) 12%, transparent);
 }
 
 @utility glass-strong {
@@ -189,8 +190,8 @@ body {
 @utility glass-card {
   background-image: linear-gradient(
     160deg,
-    color-mix(in oklab, white 10%, transparent),
-    color-mix(in oklab, white 3%, transparent)
+    color-mix(in oklab, var(--card-foreground +) 10%, transparent),
+    color-mix(in oklab, var(--card-foreground +) 3%, transparent)
   );
   backdrop-filter: blur(20px) saturate(150%);
   -webkit-backdrop-filter: blur(20px) saturate(150%);
@@ -204,7 +205,8 @@ body {
 }
 
 @utility glow-sm {
-  box-shadow: 0 6px 20px -10px color-mix(in oklab, var(--primary) 70%, transparent);
+  box-shadow: 0 6px 20px -10px
+    color-mix(in oklab, var(--primary) 70%, transparent);
 }
 
 @utility no-scrollbar {
@@ -217,7 +219,8 @@ body {
 /* Thin custom scrollbar everywhere else */
 * {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in oklab, var(--primary) 40%, transparent) transparent;
+  scrollbar-color: color-mix(in oklab, var(--primary) 40%, transparent)
+    transparent;
 }
 
 /* Equalizer bars animation (now-playing indicator) */
