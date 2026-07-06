@@ -131,7 +131,7 @@ export default function SettingsPage() {
         </Row>
 
         <Row icon={Volume2} title={t("settings.volume")}>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3" dir="ltr">
             <Slider
               value={[Math.round(volume * 100)]}
               max={100}
