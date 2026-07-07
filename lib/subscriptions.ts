@@ -35,7 +35,7 @@ export const TIERS: Record<Tier, TierConfig> = {
     maxPlaylists: 100,
     canUploadAvatar: true,
     canDownload: true,
-    earlyAccess: true,
+    earlyAccess: false,
     canViewStats: false,
   },
   gold: {
