@@ -42,7 +42,7 @@ export default function StudioPage() {
   const { data: artists = [] } = useArtists()
   const { data: works = [] } = useTracksByArtist(user?.artistId)
   const { data: albums = [] } = useAlbumsByArtist(user?.artistId)
-  const { publish, update, remove , removeAlbum } = useStudioMutations()
+  const { publish, update, remove , removeAlbum, addToAlbum } = useStudioMutations()
 
   const [title, setTitle] = React.useState("")
   const [type, setType] = React.useState<ReleaseType>("single")
@@ -56,6 +56,8 @@ export default function StudioPage() {
   const [editTitle, setEditTitle] = React.useState("")
   const [editLyrics, setEditLyrics] = React.useState("")
   const [audioUrl, setAudioUrl] = React.useState("")
+  const [selectedAlbumId, setSelectedAlbumId] = React.useState("")
+  
 
   if (!user || user.role !== "artist" || !user.artistId) {
     return (
@@ -91,8 +93,11 @@ export default function StudioPage() {
         coverUrl: coverUrl || undefined,
       },
       {
-        onSuccess: () => {
+        onSuccess: (track) => {
           toast.success(t("studio.publish"))
+          if (selectedAlbumId) {
+    addToAlbum.mutate({ albumId: selectedAlbumId, trackId: track.id })
+  }
           setTitle("")
           setGenre("")
           setLyrics("")
@@ -100,6 +105,7 @@ export default function StudioPage() {
           setAudioName("")
           setCoverUrl("")
           setAudioUrl("")
+          setSelectedAlbumId("")
         },
       }
     )
@@ -210,7 +216,45 @@ export default function StudioPage() {
               ))}
           </div>
         </div>
-
+        {albums.length > 0 && (
+  <div className="space-y-1.5">
+    <Label>
+      {t("browse.albums")}{" "}
+      <span className="text-xs text-muted-foreground">
+        ({t("common.optional")})
+      </span>
+    </Label>
+    <div className="flex flex-wrap gap-1.5">
+      <button
+        type="button"
+        onClick={() => setSelectedAlbumId("")}
+        className={cn(
+          "rounded-full px-3 py-1 text-xs transition",
+          selectedAlbumId === ""
+            ? "bg-primary/20 text-primary"
+            : "glass text-muted-foreground hover:text-foreground"
+        )}
+      >
+        {locale === "fa" ? "بدون آلبوم" : "No album"}
+      </button>
+      {albums.map((al) => (
+        <button
+          key={al.id}
+          type="button"
+          onClick={() => setSelectedAlbumId(al.id)}
+          className={cn(
+            "rounded-full px-3 py-1 text-xs transition",
+            selectedAlbumId === al.id
+              ? "bg-primary/20 text-primary"
+              : "glass text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {al.title}
+        </button>
+      ))}
+    </div>
+  </div>
+)}
         <div className="space-y-1.5">
           <Label htmlFor="lyrics">
             {t("studio.lyrics")}{" "}

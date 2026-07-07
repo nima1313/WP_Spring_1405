@@ -102,6 +102,11 @@ export function useStudioMutations() {
   mutationFn: (id: string) => catalogApi.deleteAlbum(id),
   onSuccess: invalidate,
 }),
+addToAlbum: useMutation({
+  mutationFn: (v: { albumId: string; trackId: string }) =>
+    catalogApi.addTrackToAlbum(v.albumId, v.trackId),
+  onSuccess: invalidate,
+}),
   }
 }
 

@@ -192,3 +192,18 @@ export async function deleteAlbum(id: string): Promise<void> {
   writeList(KEYS.albums, albumsDb().filter((a) => a.id !== id))
   return delay(undefined)
 }
+export async function addTrackToAlbum(albumId: string, trackId: string): Promise<void> {
+  const albums = albumsDb()
+  const idx = albums.findIndex((a) => a.id === albumId)
+  if (idx === -1) throw new Error("آلبوم یافت نشد.")
+  albums[idx] = { ...albums[idx], trackIds: [...albums[idx].trackIds, trackId] }
+  writeList(KEYS.albums, albums)
+  const tracks = tracksDb()
+  const tIdx = tracks.findIndex((t) => t.id === trackId)
+  if (tIdx !== -1) {
+    tracks[tIdx] = { ...tracks[tIdx], albumId }
+    writeList(KEYS.tracks, tracks)
+  }
+
+  return delay(undefined)
+}
