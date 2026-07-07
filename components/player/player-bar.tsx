@@ -11,10 +11,12 @@ import { useArtistMap } from "@/lib/queries"
 import { useT } from "@/lib/i18n"
 import { usePlayerStore } from "@/store/player-store"
 import { useUIStore } from "@/store/ui-store"
+import { useAlbumMap } from "@/lib/queries"
 
 export function PlayerBar() {
   const t = useT()
   const artists = useArtistMap()
+  const albums = useAlbumMap()
   const current = usePlayerStore((s) => s.queue[s.currentIndex] ?? null)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
   const currentTime = usePlayerStore((s) => s.currentTime)
@@ -29,6 +31,8 @@ export function PlayerBar() {
 
   if (!current) return null
   const artist = artists[current.artistId]
+  const album = current.albumId ? albums[current.albumId] : undefined
+
   const pct = duration > 0 ? (currentTime / duration) * 100 : 0
 
   return (
@@ -45,16 +49,23 @@ export function PlayerBar() {
               rounded="rounded-xl"
             />
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{current.title}</p>
-              {artist && (
-                <Link
-                  href={`/artists/${artist.id}`}
-                  className="truncate text-xs text-muted-foreground hover:text-foreground"
-                >
-                  {artist.name}
-                </Link>
-              )}
-            </div>
+  <p className="truncate text-sm font-semibold">{current.title}</p>
+  <div className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+    {artist && (
+      <Link href={`/artists/${artist.id}`} className="hover:text-foreground">
+        {artist.name}
+      </Link>
+    )}
+    {album && (
+      <>
+        <span>·</span>
+        <Link href={`/album/${album.id}`} className="hover:text-foreground">
+          {album.title}
+        </Link>
+      </>
+    )}
+  </div>
+</div>
           </div>
 
           <div className="flex flex-col items-center gap-1">
@@ -108,7 +119,7 @@ export function PlayerBar() {
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{current.title}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {artist?.name}
+            {artist?.name}{album ? ` · ${album.title}` : ""}
           </p>
         </div>
         <span

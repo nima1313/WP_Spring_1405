@@ -15,6 +15,7 @@ import { useAuthStore } from "@/store/auth-store"
 import { usePlayerStore } from "@/store/player-store"
 import { useUIStore } from "@/store/ui-store"
 import { VolumeControl } from "@/components/player/volume"
+import { useAlbumMap } from "@/lib/queries"
 export function FullscreenPlayer() {
   const t = useT()
   const { locale } = useI18n()
@@ -30,6 +31,8 @@ export function FullscreenPlayer() {
   const seek = usePlayerStore((s) => s.seek)
 
   const artist = current ? artists[current.artistId] : undefined
+  const albums = useAlbumMap()
+  const album = current ? (current.albumId ? albums[current.albumId] : undefined) : undefined
   const canViewStats = user ? tierConfig(user.tier).canViewStats : false
 
   return (
@@ -96,7 +99,16 @@ export function FullscreenPlayer() {
                   {artist.name}
                 </Link>
               )}
-            </div>
+              {album && (
+                <Link
+                  href={`/album/${album.id}`}
+                  onClick={() => setExpanded(false)}
+                  className="block text-sm text-muted-foreground hover:text-foreground"
+                >
+                  {album.title}
+                </Link>
+              )}
+</div>
 
             {canViewStats && (
               <div className="mx-auto flex items-center gap-5 text-xs text-muted-foreground">
