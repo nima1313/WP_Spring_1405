@@ -184,3 +184,11 @@ export async function deleteTrack(id: string): Promise<void> {
   )
   return delay(undefined)
 }
+export async function deleteAlbum(id: string): Promise<void> {
+  const album = albumsDb().find((a) => a.id === id)
+  if (album) {
+    writeList(KEYS.tracks, tracksDb().filter((t) => !album.trackIds.includes(t.id)))
+  }
+  writeList(KEYS.albums, albumsDb().filter((a) => a.id !== id))
+  return delay(undefined)
+}

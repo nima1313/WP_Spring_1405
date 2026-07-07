@@ -22,10 +22,11 @@ import {
   useArtists,
   useStudioMutations,
   useTracksByArtist,
+  useAlbumsByArtist ,
 } from "@/lib/queries"
 import { useI18n, useT } from "@/lib/i18n"
 import { formatCompact } from "@/lib/format"
-import type { ReleaseType, Track } from "@/lib/types"
+import type { ReleaseType, Track,Album } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { useAuthStore } from "@/store/auth-store"
 
@@ -40,7 +41,8 @@ export default function StudioPage() {
   const { data: artist } = useArtist(user?.artistId)
   const { data: artists = [] } = useArtists()
   const { data: works = [] } = useTracksByArtist(user?.artistId)
-  const { publish, update, remove } = useStudioMutations()
+  const { data: albums = [] } = useAlbumsByArtist(user?.artistId)
+  const { publish, update, remove , removeAlbum } = useStudioMutations()
 
   const [title, setTitle] = React.useState("")
   const [type, setType] = React.useState<ReleaseType>("single")
@@ -361,7 +363,45 @@ export default function StudioPage() {
           </div>
         )}
       </section>
-
+      {albums.length > 0 && (
+  <section className="space-y-3">
+    <h2 className="font-display text-lg font-bold">{t("browse.albums")}</h2>
+    <div className="space-y-2">
+      {albums.map((al) => (
+        <div
+          key={al.id}
+          className="flex items-center gap-3 rounded-2xl glass px-3 py-3"
+        >
+          <CoverImage
+            seed={al.id}
+            src={al.coverUrl || undefined}
+            alt={al.title}
+            className="size-14 shrink-0"
+            rounded="rounded-xl"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">{al.title}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {al.genre} · {al.trackIds.length} {t("playlists.tracksCount")}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={t("common.delete")}
+            onClick={() =>
+              removeAlbum.mutate(al.id, {
+                onSuccess: () => toast.success(t("common.delete")),
+              })
+            }
+          >
+            <Trash2 className="size-4 text-destructive" />
+          </Button>
+        </div>
+      ))}
+    </div>
+  </section>
+)}
       <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
         <DialogContent className="glass-strong">
           <DialogHeader>

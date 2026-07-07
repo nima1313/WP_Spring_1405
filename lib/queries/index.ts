@@ -98,6 +98,10 @@ export function useStudioMutations() {
       mutationFn: (id: string) => catalogApi.deleteTrack(id),
       onSuccess: invalidate,
     }),
+    removeAlbum: useMutation({
+  mutationFn: (id: string) => catalogApi.deleteAlbum(id),
+  onSuccess: invalidate,
+}),
   }
 }
 
