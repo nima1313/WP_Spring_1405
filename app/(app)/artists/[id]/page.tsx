@@ -105,7 +105,7 @@ export default function ArtistProfilePage() {
       </header>
 
       {canViewStats && (
-        <div className="grid grid-cols-2 gap-3 sm:max-w-md">
+        <div className="grid grid-cols-3 gap-3 sm:max-w-2xl">
           <div className="rounded-2xl glass px-4 py-3">
             <p className="text-xs text-muted-foreground">{t("player.listeners")}</p>
             <p className="mt-1 font-display text-xl font-bold">
@@ -118,6 +118,15 @@ export default function ArtistProfilePage() {
               {formatCompact(artist.followerCount, locale)}
             </p>
           </div>
+          <div className="rounded-2xl glass px-4 py-3">
+      <p className="text-xs text-muted-foreground">{t("player.streams")}</p>
+      <p className="mt-1 font-display text-xl font-bold">
+        {formatCompact(
+          tracks.reduce((sum, tr) => sum + tr.streams, 0),
+          locale
+        )}
+      </p>
+    </div>
         </div>
       )}
       {!canViewStats && (
