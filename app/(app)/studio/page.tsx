@@ -53,6 +53,7 @@ export default function StudioPage() {
   const [editing, setEditing] = React.useState<Track | null>(null)
   const [editTitle, setEditTitle] = React.useState("")
   const [editLyrics, setEditLyrics] = React.useState("")
+  const [audioUrl, setAudioUrl] = React.useState("")
 
   if (!user || user.role !== "artist" || !user.artistId) {
     return (
@@ -84,7 +85,7 @@ export default function StudioPage() {
         year,
         lyrics: lyrics.trim() || undefined,
         featuredArtistIds: featured,
-        audioUrl: BUNDLED_AUDIO(works.length + 1),
+        audioUrl: audioUrl || BUNDLED_AUDIO(works.length + 1),
         coverUrl: coverUrl || undefined,
       },
       {
@@ -96,6 +97,7 @@ export default function StudioPage() {
           setFeatured([])
           setAudioName("")
           setCoverUrl("")
+          setAudioUrl("")
         },
       }
     )
@@ -253,7 +255,15 @@ export default function StudioPage() {
             id="audio"
             type="file"
             accept=".mp3,.wav,.flac,audio/*"
-            onChange={(e) => setAudioName(e.target.files?.[0]?.name ?? "")}
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              setAudioName(file.name)
+              const reader = new FileReader()
+              reader.onload = () => setAudioUrl(String(reader.result))
+              reader.readAsDataURL(file)
+            }
+          }
           />
           {audioName && (
             <p className="text-xs text-muted-foreground" dir="ltr">
