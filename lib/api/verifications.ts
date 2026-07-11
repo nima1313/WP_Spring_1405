@@ -1,80 +1,41 @@
-import { pushNotification } from "@/lib/api/notifications"
-import { ensureSeeded } from "@/lib/db/seed"
-import { delay, KEYS, readList, writeList } from "@/lib/db/storage"
-import type { Artist, User, Verification } from "@/lib/types"
+import { HTTPError } from "ky"
 
-function db(): Verification[] {
-  ensureSeeded()
-  return readList<Verification>(KEYS.verifications)
-}
+import { api, call } from "@/lib/api/client"
+import type { Verification } from "@/lib/types"
 
 export async function listVerifications(): Promise<Verification[]> {
-  return delay(
-    [...db()].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
-  )
+  return call(() => api.get("verifications").json<Verification[]>())
 }
 
-export async function getVerification(id: string): Promise<Verification | null> {
-  return delay(db().find((v) => v.id === id) ?? null)
-}
-
-function notifyArtistUser(
-  artistId: string,
-  title: string,
-  body: string
-): void {
-  const user = readList<User>(KEYS.users).find((u) => u.artistId === artistId)
-  if (user) {
-    pushNotification({
-      userId: user.id,
-      kind: "verification_result",
-      title,
-      body,
-    })
+export async function getVerification(
+  id: string
+): Promise<Verification | null> {
+  try {
+    return await api.get(`verifications/${id}`).json<Verification>()
+  } catch (error) {
+    if (error instanceof HTTPError && error.response.status === 404) return null
+    throw error
   }
 }
 
-function setArtistStatus(
-  artistId: string,
-  patch: Partial<Artist>
-): void {
-  const artists = readList<Artist>(KEYS.artists)
-  const idx = artists.findIndex((a) => a.id === artistId)
-  if (idx !== -1) {
-    artists[idx] = { ...artists[idx], ...patch }
-    writeList(KEYS.artists, artists)
-  }
-}
+// Both decisions go through one right-sized PATCH; the backend syncs the Artist
+// record and notifies its owning user.
 
 export async function approveVerification(id: string): Promise<Verification> {
-  const list = db()
-  const idx = list.findIndex((v) => v.id === id)
-  if (idx === -1) throw new Error("درخواست یافت نشد.")
-  list[idx] = { ...list[idx], status: "approved", reason: undefined }
-  writeList(KEYS.verifications, list)
-  setArtistStatus(list[idx].artistId, { verified: true, status: "approved" })
-  notifyArtistUser(
-    list[idx].artistId,
-    "حساب هنرمندی شما تأیید شد",
-    "اکنون می‌توانید آثار خود را در استودیو منتشر کنید."
+  return call(() =>
+    api
+      .patch(`verifications/${id}`, { json: { status: "approved" } })
+      .json<Verification>()
   )
-  return delay(list[idx])
 }
 
 export async function rejectVerification(
   id: string,
   reason: string
 ): Promise<Verification> {
-  const list = db()
-  const idx = list.findIndex((v) => v.id === id)
-  if (idx === -1) throw new Error("درخواست یافت نشد.")
-  list[idx] = { ...list[idx], status: "rejected", reason }
-  writeList(KEYS.verifications, list)
-  setArtistStatus(list[idx].artistId, { verified: false, status: "rejected" })
-  notifyArtistUser(
-    list[idx].artistId,
-    "درخواست احراز هویت رد شد",
-    `علت: ${reason}`
+  return call(() =>
+    api
+      .patch(`verifications/${id}`, { json: { status: "rejected", reason } })
+      .json<Verification>()
   )
-  return delay(list[idx])
 }

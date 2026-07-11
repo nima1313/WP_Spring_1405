@@ -1,54 +1,30 @@
-import { ensureSeeded } from "@/lib/db/seed"
-import { delay, KEYS, readList, uid, writeList } from "@/lib/db/storage"
+import { HTTPError } from "ky"
+
+import { api, call } from "@/lib/api/client"
 import type { Ticket, TicketStatus } from "@/lib/types"
 
-function db(): Ticket[] {
-  ensureSeeded()
-  return readList<Ticket>(KEYS.tickets)
-}
-
 export async function listTickets(): Promise<Ticket[]> {
-  return delay(
-    [...db()].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
-  )
+  return call(() => api.get("tickets").json<Ticket[]>())
 }
 
 export async function getTicket(id: string): Promise<Ticket | null> {
-  return delay(db().find((t) => t.id === id) ?? null)
+  try {
+    return await api.get(`tickets/${id}`).json<Ticket>()
+  } catch (error) {
+    if (error instanceof HTTPError && error.response.status === 404) return null
+    throw error
+  }
 }
 
-export async function replyToTicket(
-  id: string,
-  body: string
-): Promise<Ticket> {
-  const tickets = db()
-  const idx = tickets.findIndex((t) => t.id === id)
-  if (idx === -1) throw new Error("تیکت یافت نشد.")
-  tickets[idx] = {
-    ...tickets[idx],
-    status: "answered",
-    messages: [
-      ...tickets[idx].messages,
-      {
-        id: uid("m"),
-        authorRole: "support",
-        body,
-        createdAt: new Date().toISOString(),
-      },
-    ],
-  }
-  writeList(KEYS.tickets, tickets)
-  return delay(tickets[idx])
+export async function replyToTicket(id: string, body: string): Promise<Ticket> {
+  return call(() =>
+    api.post(`tickets/${id}/messages`, { json: { body } }).json<Ticket>()
+  )
 }
 
 export async function setTicketStatus(
   id: string,
   status: TicketStatus
 ): Promise<Ticket> {
-  const tickets = db()
-  const idx = tickets.findIndex((t) => t.id === id)
-  if (idx === -1) throw new Error("تیکت یافت نشد.")
-  tickets[idx] = { ...tickets[idx], status }
-  writeList(KEYS.tickets, tickets)
-  return delay(tickets[idx])
+  return call(() => api.patch(`tickets/${id}`, { json: { status } }).json<Ticket>())
 }
