@@ -1,33 +1,33 @@
-import { ensureSeeded } from "@/lib/db/seed"
-import { delay, KEYS, readList, writeList } from "@/lib/db/storage"
+import { HTTPError } from "ky"
+
+import { api, call } from "@/lib/api/client"
 import type { Artist } from "@/lib/types"
 
-function db(): Artist[] {
-  ensureSeeded()
-  return readList<Artist>(KEYS.artists)
-}
-
 export async function listArtists(): Promise<Artist[]> {
-  return delay(db())
+  return call(() => api.get("artists").json<Artist[]>())
 }
 
 export async function getArtist(id: string): Promise<Artist | null> {
-  return delay(db().find((a) => a.id === id) ?? null)
+  try {
+    return await api.get(`artists/${id}`).json<Artist>()
+  } catch (error) {
+    if (error instanceof HTTPError && error.response.status === 404) return null
+    throw error
+  }
 }
 
 export async function getArtistsByIds(ids: string[]): Promise<Artist[]> {
-  const all = db()
-  return delay(ids.map((id) => all.find((a) => a.id === id)).filter(Boolean) as Artist[])
+  if (ids.length === 0) return []
+  const artists = await call(() =>
+    api.get("artists", { searchParams: { ids: ids.join(",") } }).json<Artist[]>()
+  )
+  const byId = new Map(artists.map((a) => [a.id, a]))
+  return ids.map((id) => byId.get(id)).filter(Boolean) as Artist[]
 }
 
 export async function updateArtist(
   id: string,
   patch: Partial<Artist>
 ): Promise<Artist> {
-  const artists = db()
-  const idx = artists.findIndex((a) => a.id === id)
-  if (idx === -1) throw new Error("هنرمند یافت نشد.")
-  artists[idx] = { ...artists[idx], ...patch, id }
-  writeList(KEYS.artists, artists)
-  return delay(artists[idx])
+  return call(() => api.patch(`artists/${id}`, { json: patch }).json<Artist>())
 }

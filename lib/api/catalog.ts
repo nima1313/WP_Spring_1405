@@ -1,116 +1,97 @@
-import { ensureSeeded } from "@/lib/db/seed"
-import { delay, KEYS, readList, uid, writeList } from "@/lib/db/storage"
+import { HTTPError } from "ky"
+
+import { api, call } from "@/lib/api/client"
 import type { Album, ReleaseType, Track } from "@/lib/types"
 
-function tracksDb(): Track[] {
-  ensureSeeded()
-  return readList<Track>(KEYS.tracks)
-}
-function albumsDb(): Album[] {
-  ensureSeeded()
-  return readList<Album>(KEYS.albums)
+function orderByIds<T extends { id: string }>(items: T[], ids: string[]): T[] {
+  const byId = new Map(items.map((it) => [it.id, it]))
+  return ids.map((id) => byId.get(id)).filter(Boolean) as T[]
 }
 
 export async function listTracks(): Promise<Track[]> {
-  return delay(tracksDb())
+  return call(() => api.get("tracks").json<Track[]>())
 }
 
 export async function listAlbums(): Promise<Album[]> {
-  return delay(albumsDb())
+  return call(() => api.get("albums").json<Album[]>())
 }
 
 export async function getTrack(id: string): Promise<Track | null> {
-  return delay(tracksDb().find((t) => t.id === id) ?? null)
+  try {
+    return await api.get(`tracks/${id}`).json<Track>()
+  } catch (error) {
+    if (error instanceof HTTPError && error.response.status === 404) return null
+    throw error
+  }
 }
 
 export async function getTracksByIds(ids: string[]): Promise<Track[]> {
-  const all = tracksDb()
-  return delay(
-    ids.map((id) => all.find((t) => t.id === id)).filter(Boolean) as Track[]
+  if (ids.length === 0) return []
+  const tracks = await call(() =>
+    api.get("tracks", { searchParams: { ids: ids.join(",") } }).json<Track[]>()
   )
+  // Preserve the requested order (playlists/albums are ordered lists of ids).
+  return orderByIds(tracks, ids)
 }
 
 export async function getAlbum(id: string): Promise<Album | null> {
-  return delay(albumsDb().find((a) => a.id === id) ?? null)
+  try {
+    return await api.get(`albums/${id}`).json<Album>()
+  } catch (error) {
+    if (error instanceof HTTPError && error.response.status === 404) return null
+    throw error
+  }
 }
 
 export async function getAlbumsByArtist(artistId: string): Promise<Album[]> {
-  return delay(albumsDb().filter((a) => a.artistId === artistId))
+  return call(() =>
+    api.get("albums", { searchParams: { artist: artistId } }).json<Album[]>()
+  )
 }
 
 export async function getTracksByArtist(artistId: string): Promise<Track[]> {
-  return delay(
-    tracksDb().filter(
-      (t) => t.artistId === artistId || t.featuredArtistIds.includes(artistId)
-    )
+  return call(() =>
+    api.get("tracks", { searchParams: { artist: artistId } }).json<Track[]>()
   )
 }
 
 export async function getSinglesByArtist(artistId: string): Promise<Track[]> {
-  return delay(
-    tracksDb().filter((t) => t.artistId === artistId && t.type === "single")
+  return call(() =>
+    api
+      .get("tracks", { searchParams: { artist: artistId, type: "single" } })
+      .json<Track[]>()
   )
 }
 
 export interface BrowseQuery {
   q?: string
   sort?: "listeners" | "date"
+  // Kept for signature compatibility; the backend joins artist names itself.
   artistNames?: Record<string, string>
 }
 
 export type SortKey = "listeners" | "date"
 
-function sortTracks(list: Track[], sort: SortKey): Track[] {
-  return [...list].sort((a, b) =>
-    sort === "listeners"
-      ? b.listeners - a.listeners
-      : +new Date(b.releaseDate) - +new Date(a.releaseDate)
-  )
-}
-
-function sortAlbums(list: Album[], sort: SortKey, tracks: Track[]): Album[] {
-  const listenersOf = (al: Album) =>
-    al.trackIds.reduce(
-      (sum, id) => sum + (tracks.find((t) => t.id === id)?.listeners ?? 0),
-      0
-    )
-  return [...list].sort((a, b) =>
-    sort === "listeners"
-      ? listenersOf(b) - listenersOf(a)
-      : +new Date(b.releaseDate) - +new Date(a.releaseDate)
-  )
-}
-
 /**
- * Browse archive (§8.2): search simultaneously by track OR artist name, with
- * sort by listener count / release date. `artistNames` maps artistId→name so a
- * query can match the artist of a track/album too.
+ * Browse archive (§8.2): the backend searches by track OR artist name and sorts
+ * by listener count / release date, returning the joined result directly.
  */
 export async function browse(query: BrowseQuery): Promise<{
   albums: Album[]
   singles: Track[]
 }> {
-  const tracks = tracksDb()
-  const albums = albumsDb()
-  const sort: SortKey = query.sort ?? "date"
-  const q = query.q?.trim().toLowerCase() ?? ""
-  const names = query.artistNames ?? {}
-
-  const matchTrack = (t: Track) =>
-    !q ||
-    t.title.toLowerCase().includes(q) ||
-    (names[t.artistId]?.toLowerCase().includes(q) ?? false)
-  const matchAlbum = (a: Album) =>
-    !q ||
-    a.title.toLowerCase().includes(q) ||
-    (names[a.artistId]?.toLowerCase().includes(q) ?? false)
-
-  const singles = sortTracks(
-    tracks.filter((t) => t.type === "single" && matchTrack(t)),
-    sort
+  const searchParams: Record<string, string> = {}
+  if (query.q?.trim()) searchParams.q = query.q.trim()
+  if (query.sort) searchParams.sort = query.sort
+  return call(() =>
+    api.get("browse", { searchParams }).json<{ albums: Album[]; singles: Track[] }>()
   )
-  const filteredAlbums = sortAlbums(albums.filter(matchAlbum), sort, tracks)
-  return delay({ albums: filteredAlbums, singles })
+}
+
+// ---- Recommendations (bonus §5.2) -----------------------------------------
+
+export async function getRecommendations(): Promise<Track[]> {
+  return call(() => api.get("me/recommendations").json<Track[]>())
 }
 
 // ---- Studio (artist works management, §10.2) ------------------------------
@@ -125,85 +106,49 @@ export interface PublishInput {
   featuredArtistIds?: string[]
   audioUrl: string
   coverUrl?: string
+  // Phase 2: real uploads. When present these are sent as multipart files and
+  // stored server-side; the *Url fields remain as a fallback (bundled demo audio).
+  audioFile?: File
+  coverFile?: File
 }
 
 export async function publishWork(input: PublishInput): Promise<Track> {
-  const tracks = tracksDb()
-  const track: Track = {
-    id: uid("tr"),
-    title: input.title,
-    artistId: input.artistId,
-    featuredArtistIds: input.featuredArtistIds ?? [],
-    coverUrl: input.coverUrl ?? "",
-    audioUrl: input.audioUrl,
-    duration: 200,
-    lyrics: input.lyrics,
-    genre: input.genre,
-    releaseDate: new Date().toISOString(),
-    type: input.type,
-    listeners: 0,
-    streams: 0,
-    earlyAccess: true,
+  const form = new FormData()
+  form.append("title", input.title)
+  form.append("type", input.type)
+  form.append("genre", input.genre)
+  if (input.lyrics) form.append("lyrics", input.lyrics)
+  if (input.featuredArtistIds?.length) {
+    // The backend splits this comma-joined list (camelCase key auto-mapped).
+    form.append("featuredArtistIds", input.featuredArtistIds.join(","))
   }
-  writeList(KEYS.tracks, [track, ...tracks])
+  if (input.audioFile) form.append("audio", input.audioFile)
+  else if (input.audioUrl) form.append("sourceUrl", input.audioUrl)
+  if (input.coverFile) form.append("cover", input.coverFile)
 
-  if (input.type === "album") {
-    const albums = albumsDb()
-    writeList(KEYS.albums, [
-      {
-        id: uid("al"),
-        title: input.title,
-        artistId: input.artistId,
-        coverUrl: input.coverUrl ?? "",
-        releaseDate: track.releaseDate,
-        genre: input.genre,
-        trackIds: [track.id],
-      },
-      ...albums,
-    ])
-  }
-  return delay(track)
+  return call(() => api.post("tracks", { body: form }).json<Track>())
 }
 
 export async function updateTrack(
   id: string,
   patch: Partial<Track>
 ): Promise<Track> {
-  const tracks = tracksDb()
-  const idx = tracks.findIndex((t) => t.id === id)
-  if (idx === -1) throw new Error("اثر یافت نشد.")
-  tracks[idx] = { ...tracks[idx], ...patch, id }
-  writeList(KEYS.tracks, tracks)
-  return delay(tracks[idx])
+  return call(() => api.patch(`tracks/${id}`, { json: patch }).json<Track>())
 }
 
 export async function deleteTrack(id: string): Promise<void> {
-  writeList(
-    KEYS.tracks,
-    tracksDb().filter((t) => t.id !== id)
-  )
-  return delay(undefined)
+  await call(() => api.delete(`tracks/${id}`).text())
 }
-export async function deleteAlbum(id: string): Promise<void> {
-  const album = albumsDb().find((a) => a.id === id)
-  if (album) {
-    writeList(KEYS.tracks, tracksDb().filter((t) => !album.trackIds.includes(t.id)))
-  }
-  writeList(KEYS.albums, albumsDb().filter((a) => a.id !== id))
-  return delay(undefined)
-}
-export async function addTrackToAlbum(albumId: string, trackId: string): Promise<void> {
-  const albums = albumsDb()
-  const idx = albums.findIndex((a) => a.id === albumId)
-  if (idx === -1) throw new Error("آلبوم یافت نشد.")
-  albums[idx] = { ...albums[idx], trackIds: [...albums[idx].trackIds, trackId] }
-  writeList(KEYS.albums, albums)
-  const tracks = tracksDb()
-  const tIdx = tracks.findIndex((t) => t.id === trackId)
-  if (tIdx !== -1) {
-    tracks[tIdx] = { ...tracks[tIdx], albumId }
-    writeList(KEYS.tracks, tracks)
-  }
 
-  return delay(undefined)
+export async function deleteAlbum(id: string): Promise<void> {
+  await call(() => api.delete(`albums/${id}`).text())
+}
+
+export async function addTrackToAlbum(
+  albumId: string,
+  trackId: string
+): Promise<void> {
+  await call(() =>
+    api.post(`albums/${albumId}/tracks`, { json: { trackId } }).text()
+  )
 }

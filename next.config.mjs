@@ -1,15 +1,23 @@
 import withSerwistInit from "@serwist/next"
 
+// The Django backend. Locally it is http://localhost:8321; inside Docker the
+// compose network resolves it as http://backend:8321 (set via API_ORIGIN).
+const API_ORIGIN = process.env.API_ORIGIN ?? "http://localhost:8321"
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Phase 2: the Django backend lives at localhost:8321 and is proxied here so
-  // the frontend always talks to a same-origin /api. Harmless in phase 1 (the
-  // LocalStorage repositories never hit the network).
+  // Phase 2: everything is proxied so the browser only ever talks to a
+  // same-origin /api (auth cookies + CSRF just work) and /media (uploaded audio,
+  // covers and avatars served by Django).
   async rewrites() {
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:8321/api/:path*",
+        destination: `${API_ORIGIN}/api/:path*`,
+      },
+      {
+        source: "/media/:path*",
+        destination: `${API_ORIGIN}/media/:path*`,
       },
     ]
   },
