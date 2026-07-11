@@ -11,6 +11,9 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "public/sw.js",
+    // The Django backend is a separate project (Python + its virtualenv's
+    // bundled static JS); it is not linted by eslint.
+    "backend/**",
   ]),
 ])
 
