@@ -55,7 +55,9 @@ export default function StudioPage() {
   const [editing, setEditing] = React.useState<Track | null>(null)
   const [editTitle, setEditTitle] = React.useState("")
   const [editLyrics, setEditLyrics] = React.useState("")
-  const [audioUrl, setAudioUrl] = React.useState("")
+  // Phase 2: keep the real File objects so they can be uploaded as multipart.
+  const [audioFile, setAudioFile] = React.useState<File | null>(null)
+  const [coverFile, setCoverFile] = React.useState<File | null>(null)
   const [selectedAlbumId, setSelectedAlbumId] = React.useState("")
   
 
@@ -89,8 +91,12 @@ export default function StudioPage() {
         year,
         lyrics: lyrics.trim() || undefined,
         featuredArtistIds: featured,
-        audioUrl: audioUrl || BUNDLED_AUDIO(works.length + 1),
-        coverUrl: coverUrl || undefined,
+        // Upload the real file when picked; otherwise fall back to a bundled
+        // royalty-free demo track (source_url on the backend).
+        audioFile: audioFile ?? undefined,
+        audioUrl: audioFile ? "" : BUNDLED_AUDIO(works.length + 1),
+        coverFile: coverFile ?? undefined,
+        coverUrl: undefined,
       },
       {
         onSuccess: (track) => {
@@ -104,7 +110,8 @@ export default function StudioPage() {
           setFeatured([])
           setAudioName("")
           setCoverUrl("")
-          setAudioUrl("")
+          setAudioFile(null)
+          setCoverFile(null)
           setSelectedAlbumId("")
         },
       }
@@ -287,9 +294,8 @@ export default function StudioPage() {
               onChange={(e) => {
                 const file = e.target.files?.[0]
                 if (!file) return
-                const reader = new FileReader()
-                reader.onload = () => setCoverUrl(String(reader.result))
-                reader.readAsDataURL(file)
+                setCoverFile(file)
+                setCoverUrl(URL.createObjectURL(file)) // local preview only
               }}
             />
           </div>
@@ -305,11 +311,8 @@ export default function StudioPage() {
               const file = e.target.files?.[0]
               if (!file) return
               setAudioName(file.name)
-              const reader = new FileReader()
-              reader.onload = () => setAudioUrl(String(reader.result))
-              reader.readAsDataURL(file)
-            }
-          }
+              setAudioFile(file)
+            }}
           />
           {audioName && (
             <p className="text-xs text-muted-foreground" dir="ltr">
