@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input"
 import { JalaliDateInput } from "@/components/ui/jalali-date-input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { uploadAvatar } from "@/lib/api/users"
 import { useUpdateUser } from "@/lib/queries"
 import { useT } from "@/lib/i18n"
 import { tierConfig } from "@/lib/subscriptions"
@@ -43,6 +44,7 @@ export function EditProfileDialog({
   const [birthday, setBirthday] = React.useState(user?.birthday ?? "")
   const [gender, setGender] = React.useState<Gender | undefined>(user?.gender)
   const [avatarUrl, setAvatarUrl] = React.useState(user?.avatarUrl ?? "")
+  const [avatarFile, setAvatarFile] = React.useState<File | null>(null)
   const fileRef = React.useRef<HTMLInputElement>(null)
 
   if (!user) return null
@@ -55,9 +57,9 @@ export function EditProfileDialog({
       toast.error(t("profile.avatarLockedBasic"))
       return
     }
-    const reader = new FileReader()
-    reader.onload = () => setAvatarUrl(String(reader.result))
-    reader.readAsDataURL(file)
+    // Keep the file for upload on save; show a local preview meanwhile.
+    setAvatarFile(file)
+    setAvatarUrl(URL.createObjectURL(file))
   }
 
   function onSave() {
@@ -69,12 +71,22 @@ export function EditProfileDialog({
           bio,
           birthday: birthday || undefined,
           gender,
-          avatarUrl: avatarUrl || undefined,
         },
       },
       {
-        onSuccess: (updated) => {
-          setUser(updated)
+        onSuccess: async (updated) => {
+          // The avatar is a separate multipart upload (POST /me/avatar).
+          let finalUser = updated
+          if (avatarFile) {
+            try {
+              finalUser = await uploadAvatar(avatarFile)
+            } catch (err) {
+              toast.error(
+                err instanceof Error ? err.message : t("profile.avatarLockedBasic")
+              )
+            }
+          }
+          setUser(finalUser)
           toast.success(t("common.save"))
           onOpenChange(false)
         },
