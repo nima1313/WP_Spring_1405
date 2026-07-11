@@ -1,68 +1,34 @@
-import { ensureSeeded } from "@/lib/db/seed"
-import { delay, KEYS, readList, uid, writeList } from "@/lib/db/storage"
-import type { AppNotification, NotificationKind } from "@/lib/types"
+import { api, call } from "@/lib/api/client"
+import type { AppNotification } from "@/lib/types"
 
-function db(): AppNotification[] {
-  ensureSeeded()
-  return readList<AppNotification>(KEYS.notifications)
-}
+// The backend scopes every notification query to the session user, so the
+// userId argument is kept only for signature compatibility with phase 1.
 
 export async function listNotifications(
-  userId: string
+  _userId: string
 ): Promise<AppNotification[]> {
-  return delay(
-    db()
-      .filter((n) => n.userId === userId)
-      .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
-  )
+  return call(() => api.get("notifications").json<AppNotification[]>())
 }
 
-export async function unreadCount(userId: string): Promise<number> {
-  return delay(db().filter((n) => n.userId === userId && !n.read).length)
+export async function unreadCount(_userId: string): Promise<number> {
+  const { count } = await call(() =>
+    api.get("notifications/unread-count").json<{ count: number }>()
+  )
+  return count
 }
 
 export async function markRead(id: string): Promise<void> {
-  const list = db()
-  const idx = list.findIndex((n) => n.id === id)
-  if (idx !== -1) {
-    list[idx] = { ...list[idx], read: true }
-    writeList(KEYS.notifications, list)
-  }
-  return delay(undefined)
+  await call(() => api.patch(`notifications/${id}`, { json: { read: true } }).text())
 }
 
-export async function markAllRead(userId: string): Promise<void> {
-  const list = db().map((n) => (n.userId === userId ? { ...n, read: true } : n))
-  writeList(KEYS.notifications, list)
-  return delay(undefined)
+export async function markAllRead(_userId: string): Promise<void> {
+  await call(() => api.post("notifications/mark-all-read").text())
 }
 
 export async function deleteNotification(id: string): Promise<void> {
-  writeList(
-    KEYS.notifications,
-    db().filter((n) => n.id !== id)
-  )
-  return delay(undefined)
+  await call(() => api.delete(`notifications/${id}`).text())
 }
 
-/** Used by other repositories (e.g. verification decisions) to notify a user. */
-export function pushNotification(input: {
-  userId: string
-  kind: NotificationKind
-  title: string
-  body: string
-  href?: string
-}): void {
-  const list = db()
-  list.push({
-    id: uid("nt"),
-    userId: input.userId,
-    kind: input.kind,
-    title: input.title,
-    body: input.body,
-    read: false,
-    createdAt: new Date().toISOString(),
-    href: input.href,
-  })
-  writeList(KEYS.notifications, list)
-}
+// Note: notifications are now created only by the backend (verification results,
+// settlements, new followers, staff fan-out). The phase-1 `pushNotification`
+// client helper is intentionally gone.

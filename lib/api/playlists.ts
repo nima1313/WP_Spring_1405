@@ -1,94 +1,59 @@
-import { ensureSeeded } from "@/lib/db/seed"
-import { delay, KEYS, readList, uid, writeList } from "@/lib/db/storage"
-import type { Playlist } from "@/lib/types"
+import { HTTPError } from "ky"
 
-function db(): Playlist[] {
-  ensureSeeded()
-  return readList<Playlist>(KEYS.playlists)
-}
+import { api, call } from "@/lib/api/client"
+import type { Playlist } from "@/lib/types"
 
 export async function listPlaylistsByOwner(
   ownerId: string
 ): Promise<Playlist[]> {
-  return delay(db().filter((p) => p.ownerId === ownerId))
+  return call(() =>
+    api.get("playlists", { searchParams: { owner: ownerId } }).json<Playlist[]>()
+  )
 }
 
 export async function getPlaylist(id: string): Promise<Playlist | null> {
-  return delay(db().find((p) => p.id === id) ?? null)
+  try {
+    return await api.get(`playlists/${id}`).json<Playlist>()
+  } catch (error) {
+    if (error instanceof HTTPError && error.response.status === 404) return null
+    throw error
+  }
 }
 
 export async function createPlaylist(
-  ownerId: string,
+  _ownerId: string,
   name: string
 ): Promise<Playlist> {
-  const playlists = db()
-  const now = new Date().toISOString()
-  const playlist: Playlist = {
-    id: uid("pl"),
-    name,
-    ownerId,
-    trackIds: [],
-    createdAt: now,
-    updatedAt: now,
-  }
-  writeList(KEYS.playlists, [...playlists, playlist])
-  return delay(playlist)
+  // Over the tier cap the backend answers 403 {code: "playlist_limit"}, which
+  // `call` surfaces as an ApiError the dialog can branch on.
+  return call(() => api.post("playlists", { json: { name } }).json<Playlist>())
 }
 
 export async function renamePlaylist(
   id: string,
   name: string
 ): Promise<Playlist> {
-  const playlists = db()
-  const idx = playlists.findIndex((p) => p.id === id)
-  if (idx === -1) throw new Error("پلی‌لیست یافت نشد.")
-  playlists[idx] = {
-    ...playlists[idx],
-    name,
-    updatedAt: new Date().toISOString(),
-  }
-  writeList(KEYS.playlists, playlists)
-  return delay(playlists[idx])
+  return call(() => api.patch(`playlists/${id}`, { json: { name } }).json<Playlist>())
 }
 
 export async function deletePlaylist(id: string): Promise<void> {
-  writeList(
-    KEYS.playlists,
-    db().filter((p) => p.id !== id)
-  )
-  return delay(undefined)
+  await call(() => api.delete(`playlists/${id}`).text())
 }
 
 export async function addTrackToPlaylist(
   playlistId: string,
   trackId: string
 ): Promise<Playlist> {
-  const playlists = db()
-  const idx = playlists.findIndex((p) => p.id === playlistId)
-  if (idx === -1) throw new Error("پلی‌لیست یافت نشد.")
-  if (!playlists[idx].trackIds.includes(trackId)) {
-    playlists[idx] = {
-      ...playlists[idx],
-      trackIds: [...playlists[idx].trackIds, trackId],
-      updatedAt: new Date().toISOString(),
-    }
-    writeList(KEYS.playlists, playlists)
-  }
-  return delay(playlists[idx])
+  return call(() =>
+    api.put(`playlists/${playlistId}/tracks/${trackId}`).json<Playlist>()
+  )
 }
 
 export async function removeTrackFromPlaylist(
   playlistId: string,
   trackId: string
 ): Promise<Playlist> {
-  const playlists = db()
-  const idx = playlists.findIndex((p) => p.id === playlistId)
-  if (idx === -1) throw new Error("پلی‌لیست یافت نشد.")
-  playlists[idx] = {
-    ...playlists[idx],
-    trackIds: playlists[idx].trackIds.filter((t) => t !== trackId),
-    updatedAt: new Date().toISOString(),
-  }
-  writeList(KEYS.playlists, playlists)
-  return delay(playlists[idx])
+  return call(() =>
+    api.delete(`playlists/${playlistId}/tracks/${trackId}`).json<Playlist>()
+  )
 }

@@ -1,31 +1,13 @@
-import { ensureSeeded } from "@/lib/db/seed"
-import { delay, KEYS, readList, uid, writeList } from "@/lib/db/storage"
-import { canStream, TIER_ORDER } from "@/lib/subscriptions"
-import type {
-  RecentItem,
-  StreamEvent,
-  Tier,
-  Track,
-  User,
-} from "@/lib/types"
+import { HTTPError } from "ky"
 
-function isToday(iso: string): boolean {
-  const d = new Date(iso)
-  const now = new Date()
-  return (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  )
-}
+import { api, call } from "@/lib/api/client"
+import type { RecentItem, Tier } from "@/lib/types"
 
-export async function todayStreamCount(userId: string): Promise<number> {
-  ensureSeeded()
-  return delay(
-    readList<StreamEvent>(KEYS.streams).filter(
-      (s) => s.userId === userId && isToday(s.at)
-    ).length
+export async function todayStreamCount(_userId: string): Promise<number> {
+  const { count } = await call(() =>
+    api.get("me/streams/today").json<{ count: number }>()
   )
+  return count
 }
 
 export class StreamLimitError extends Error {
@@ -36,54 +18,39 @@ export class StreamLimitError extends Error {
 }
 
 /**
- * Records a play. Enforces the §9.2 basic-tier 60/day cap (throws
- * StreamLimitError when exceeded), bumps the track's stream counter, and adds a
- * "recently played" entry.
+ * Records a play. The §9.2 basic-tier 60/day cap is enforced server-side; a 429
+ * with {code:"stream_limit"} is translated back into StreamLimitError so the
+ * player (audio-engine.tsx) keeps its existing catch untouched. The `tier`
+ * argument is ignored now that the server derives it from the session.
  */
 export async function recordStream(
-  userId: string,
+  _userId: string,
   trackId: string,
-  tier: Tier
+  _tier: Tier
 ): Promise<{ todayCount: number }> {
-  ensureSeeded()
-  const events = readList<StreamEvent>(KEYS.streams)
-  const usedToday = events.filter(
-    (s) => s.userId === userId && isToday(s.at)
-  ).length
-  if (!canStream(tier, usedToday)) throw new StreamLimitError()
-
-  events.push({ id: uid("st"), userId, trackId, at: new Date().toISOString() })
-  writeList(KEYS.streams, events)
-
-  const tracks = readList<Track>(KEYS.tracks)
-  const idx = tracks.findIndex((t) => t.id === trackId)
-  if (idx !== -1) {
-    tracks[idx] = { ...tracks[idx], streams: tracks[idx].streams + 1 }
-    writeList(KEYS.tracks, tracks)
+  try {
+    return await api
+      .post("streams", { json: { trackId } })
+      .json<{ todayCount: number }>()
+  } catch (error) {
+    if (error instanceof HTTPError && error.response.status === 429) {
+      throw new StreamLimitError()
+    }
+    throw error
   }
-  addRecent(userId, "track", trackId)
-  return delay({ todayCount: usedToday + 1 })
 }
 
-export function addRecent(
-  userId: string,
+/** Records a "recently played" entry (e.g. when a playlist is opened). */
+export async function addRecent(
+  _userId: string,
   kind: RecentItem["kind"],
   refId: string
-): void {
-  const recents = readList<RecentItem>(KEYS.recents).filter(
-    (r) => !(r.userId === userId && r.kind === kind && r.refId === refId)
-  )
-  recents.unshift({ userId, kind, refId, at: new Date().toISOString() })
-  writeList(KEYS.recents, recents.slice(0, 50))
+): Promise<void> {
+  await call(() => api.post("me/recents", { json: { kind, refId } }).text())
 }
 
-export async function listRecents(userId: string): Promise<RecentItem[]> {
-  ensureSeeded()
-  return delay(
-    readList<RecentItem>(KEYS.recents)
-      .filter((r) => r.userId === userId)
-      .sort((a, b) => +new Date(b.at) - +new Date(a.at))
-  )
+export async function listRecents(_userId: string): Promise<RecentItem[]> {
+  return call(() => api.get("me/recents").json<RecentItem[]>())
 }
 
 export interface TierDistribution {
@@ -92,23 +59,18 @@ export interface TierDistribution {
 }
 
 export async function userDistribution(): Promise<TierDistribution[]> {
-  ensureSeeded()
-  const users = readList<User>(KEYS.users).filter((u) => u.role === "listener")
-  return delay(
-    TIER_ORDER.map((tier) => ({
-      tier,
-      count: users.filter((u) => u.tier === tier).length,
-    }))
+  return call(() =>
+    api.get("stats/user-distribution").json<TierDistribution[]>()
   )
 }
 
-export async function monthlyRevenue(prices: {
+export async function monthlyRevenue(_prices?: {
   silver: number
   gold: number
 }): Promise<number> {
-  ensureSeeded()
-  const users = readList<User>(KEYS.users).filter((u) => u.role === "listener")
-  const silver = users.filter((u) => u.tier === "silver").length
-  const gold = users.filter((u) => u.tier === "gold").length
-  return delay(silver * prices.silver + gold * prices.gold)
+  // The backend computes revenue from live tier counts × current prices.
+  const { revenue } = await call(() =>
+    api.get("stats/monthly-revenue").json<{ revenue: number }>()
+  )
+  return revenue
 }
