@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import {
   Bell,
   Globe,
@@ -26,7 +26,8 @@ import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { SubscriptionDialog } from "@/components/settings/subscription-dialog"
 import { TierBadge } from "@/components/common/tier-badge"
-import { deleteAccount } from "@/lib/api/users"
+import { updateMySettings } from "@/lib/api/settings"
+import { deleteAccount, getCurrentUser } from "@/lib/api/users"
 import { useI18n, useT } from "@/lib/i18n"
 import type { Locale } from "@/lib/i18n"
 import { toFaDigits } from "@/lib/format"
@@ -65,10 +66,27 @@ function Row({
 export default function SettingsPage() {
   const t = useT()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { locale, setLocale } = useI18n()
   const { theme, setTheme } = useTheme()
   const user = useAuthStore((s) => s.user)
+  const setUser = useAuthStore((s) => s.setUser)
   const clear = useAuthStore((s) => s.clear)
+
+  // The payment gateway redirects back here with ?payment=success|failed. Toast
+  // the outcome, refresh the session (the tier/expiry changed server-side), and
+  // strip the query so a refresh doesn't re-toast.
+  const paymentResult = searchParams.get("payment")
+  React.useEffect(() => {
+    if (!paymentResult) return
+    if (paymentResult === "success") {
+      getCurrentUser().then((u) => u && setUser(u))
+      toast.success(t("settings.planUpdated"))
+    } else {
+      toast.error(t("settings.planUpdated"))
+    }
+    router.replace("/settings")
+  }, [paymentResult, router, setUser, t])
 
   const volume = usePlayerStore((s) => s.volume)
   const setVolume = usePlayerStore((s) => s.setVolume)
@@ -155,7 +173,10 @@ export default function SettingsPage() {
               <button
                 key={l}
                 type="button"
-                onClick={() => setLocale(l)}
+                onClick={() => {
+                  setLocale(l)
+                  void updateMySettings({ locale: l }).catch(() => undefined)
+                }}
                 className={cn(
                   "rounded-lg px-3 py-1.5 text-xs font-medium transition",
                   locale === l
@@ -175,7 +196,10 @@ export default function SettingsPage() {
               <button
                 key={th}
                 type="button"
-                onClick={() => setTheme(th)}
+                onClick={() => {
+                  setTheme(th)
+                  void updateMySettings({ theme: th }).catch(() => undefined)
+                }}
                 className={cn(
                   "rounded-lg px-3 py-1.5 text-xs font-medium transition",
                   theme === th

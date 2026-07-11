@@ -6,6 +6,7 @@ import { useState } from "react"
 
 import { Bootstrap } from "@/components/bootstrap"
 import { AudioEngine } from "@/components/player/audio-engine"
+import { PreferenceSync } from "@/components/preference-sync"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { I18nProvider } from "@/lib/i18n"
 
@@ -23,6 +24,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <I18nProvider>
         <TooltipProvider delay={200}>{children}</TooltipProvider>
         <Bootstrap />
+        <PreferenceSync />
         <AudioEngine />
       </I18nProvider>
       <ReactQueryDevtools initialIsOpen={false} />

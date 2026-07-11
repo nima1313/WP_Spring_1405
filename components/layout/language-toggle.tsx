@@ -2,6 +2,7 @@
 
 import { Languages } from "lucide-react"
 
+import { updateMySettings } from "@/lib/api/settings"
 import { useI18n } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
@@ -11,7 +12,11 @@ export function LanguageToggle({ className }: { className?: string }) {
     <button
       type="button"
       aria-label="toggle language"
-      onClick={() => setLocale(locale === "fa" ? "en" : "fa")}
+      onClick={() => {
+        const next = locale === "fa" ? "en" : "fa"
+        setLocale(next)
+        void updateMySettings({ locale: next }).catch(() => undefined)
+      }}
       className={cn(
         "flex items-center gap-1.5 rounded-full glass px-3 py-1.5 text-xs font-medium transition hover:bg-white/10",
         className
