@@ -4,7 +4,7 @@ import { afterEach, beforeEach } from "vitest"
 
 // Each test starts from a clean LocalStorage and DOM.
 beforeEach(() => {
-  window.localStorage.clear()
+  if (typeof window !== "undefined") window.localStorage.clear()
 })
 
 afterEach(() => {
@@ -12,7 +12,7 @@ afterEach(() => {
 })
 
 // jsdom doesn't implement matchMedia (used by next-themes) — stub it.
-if (!window.matchMedia) {
+if (typeof window !== "undefined" && !window.matchMedia) {
   window.matchMedia = (query: string) =>
     ({
       matches: false,

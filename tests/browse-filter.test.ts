@@ -1,46 +1,47 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi, beforeEach } from "vitest"
 
-import { listArtists } from "@/lib/api/artists"
+// The §8.2 search + sort logic now lives in the backend (covered by the pytest
+// suite). Here we verify the browse repository forwards its query params to the
+// right endpoint and returns the backend's {albums, singles} payload unchanged,
+// by mocking the HTTP client.
+const get = vi.fn()
+vi.mock("@/lib/api/client", () => ({
+  api: { get: (...args: unknown[]) => get(...args) },
+  call: (fn: () => unknown) => fn(),
+}))
+
 import { browse } from "@/lib/api/catalog"
 
-async function artistNames() {
-  const artists = await listArtists()
-  return Object.fromEntries(artists.map((a) => [a.id, a.name]))
+function respondWith(payload: unknown) {
+  get.mockReturnValue({ json: () => Promise.resolve(payload) })
 }
 
-describe("catalog browse (§8.2 search + sort)", () => {
-  it("returns albums and singles by default", async () => {
+beforeEach(() => get.mockReset())
+
+describe("catalog browse repository (HTTP)", () => {
+  it("returns the backend's albums and singles", async () => {
+    respondWith({
+      albums: [{ id: "al_1", title: "آلبوم", artistId: "ar_1" }],
+      singles: [{ id: "tr_1", title: "ستاره", type: "single" }],
+    })
+
     const { albums, singles } = await browse({})
-    expect(albums.length).toBeGreaterThan(0)
-    expect(singles.length).toBeGreaterThan(0)
-    expect(singles.every((t) => t.type === "single")).toBe(true)
-  })
-
-  it("filters singles by track title", async () => {
-    const { singles } = await browse({ q: "ستاره", artistNames: await artistNames() })
-    expect(singles.length).toBe(1)
+    expect(albums).toHaveLength(1)
     expect(singles[0].title).toBe("ستاره")
+    expect(get).toHaveBeenCalledWith("browse", { searchParams: {} })
   })
 
-  it("matches by artist name across albums", async () => {
-    const names = await artistNames()
-    const { albums } = await browse({ q: "نوید", artistNames: names })
-    expect(albums.length).toBeGreaterThan(0)
+  it("forwards q and sort as query params", async () => {
+    respondWith({ albums: [], singles: [] })
+    await browse({ q: "نوید", sort: "listeners" })
+    expect(get).toHaveBeenCalledWith("browse", {
+      searchParams: { q: "نوید", sort: "listeners" },
+    })
   })
 
-  it("sorts singles by release date (newest first)", async () => {
-    const { singles } = await browse({ sort: "date" })
-    for (let i = 1; i < singles.length; i++) {
-      expect(+new Date(singles[i - 1].releaseDate)).toBeGreaterThanOrEqual(
-        +new Date(singles[i].releaseDate)
-      )
-    }
-  })
-
-  it("sorts singles by listener count when requested", async () => {
-    const { singles } = await browse({ sort: "listeners" })
-    for (let i = 1; i < singles.length; i++) {
-      expect(singles[i - 1].listeners).toBeGreaterThanOrEqual(singles[i].listeners)
-    }
+  it("omits an empty/whitespace query", async () => {
+    respondWith({ albums: [], singles: [] })
+    await browse({ q: "   " })
+    expect(get).toHaveBeenCalledWith("browse", { searchParams: {} })
   })
 })
