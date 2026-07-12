@@ -113,6 +113,8 @@ const fa: Dict = {
   "home.earlyAccessHint": "آثار جدید، زودتر از همه برای شما.",
   "home.forYou": "برای شما",
   "home.startListening": "شروع به شنیدن",
+  "home.recommended": "پیشنهاد برای شما",
+  "home.recommendedHint": "بر اساس آنچه اخیراً شنیده‌اید.",
 
   "browse.title": "آلبوم‌ها و تک‌آهنگ‌ها",
   "browse.searchPlaceholder": "نام اثر یا هنرمند…",
@@ -344,6 +346,8 @@ const en: Dict = {
   "home.earlyAccessHint": "New releases, before everyone else.",
   "home.forYou": "For you",
   "home.startListening": "Start listening",
+  "home.recommended": "Recommended for you",
+  "home.recommendedHint": "Based on what you've listened to lately.",
 
   "browse.title": "Albums & Singles",
   "browse.searchPlaceholder": "Track or artist name…",

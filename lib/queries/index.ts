@@ -42,6 +42,15 @@ export function useTracksByIds(ids: string[]) {
     queryFn: () => catalogApi.getTracksByIds(ids),
   })
 }
+
+/** Bonus (§5.2): personalized recommendations, computed by the backend. */
+export function useRecommendations(enabled: boolean) {
+  return useQuery({
+    queryKey: ["recommendations"],
+    queryFn: catalogApi.getRecommendations,
+    enabled,
+  })
+}
 export function useAlbum(id: string | undefined) {
   return useQuery({
     queryKey: qk.album(id ?? ""),

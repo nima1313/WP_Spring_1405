@@ -12,6 +12,7 @@ import {
   useAlbums,
   usePlaylists,
   useRecents,
+  useRecommendations,
   useTracks,
 } from "@/lib/queries"
 import { useT } from "@/lib/i18n"
@@ -26,6 +27,7 @@ export default function HomePage() {
   const { data: tracks = [] } = useTracks()
   const { data: playlists = [] } = usePlaylists(user?.id)
   const { data: recents = [] } = useRecents(user?.id)
+  const { data: recommended = [] } = useRecommendations(!!user)
   const playQueue = usePlayerStore((s) => s.playQueue)
 
   const latestAlbums = React.useMemo(
@@ -111,6 +113,14 @@ export default function HomePage() {
           ))}
           {recentTracks.map((tr) => (
             <TrackCard key={tr.id} track={tr} context={recentTracks} />
+          ))}
+        </Section>
+      )}
+
+      {recommended.length > 0 && (
+        <Section title={t("home.recommended")}>
+          {recommended.map((tr) => (
+            <TrackCard key={tr.id} track={tr} context={recommended} />
           ))}
         </Section>
       )}
