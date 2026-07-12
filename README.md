@@ -1,36 +1,58 @@
-# نوا · Nava — سرویس استریم موسیقی (فاز اول)
+# نوا · Nava — سرویس استریم موسیقی (فاز اول و دوم)
 
 پروژه درس **برنامه‌سازی وب**. نوا یک سرویس استریم موسیقی شبیه Spotify است با چهار
-نقش کاربری (شنونده، هنرمند، پشتیبان، مدیر). این مخزن **فاز اول (فرانت‌اند)** را
-پیاده‌سازی می‌کند: تمام رابط کاربری، واکنش‌گرا (دسکتاپ/تبلت/موبایل)، با داده‌های
-ساختگی که در **LocalStorage** نگه‌داری می‌شوند. معماری طوری چیده شده که **فاز دوم
-(بک‌اند جنگو)** صرفاً با جایگزینی لایهٔ مخزن (Repository) انجام شود، نه بازنویسی.
+نقش کاربری (شنونده، هنرمند، پشتیبان، مدیر). **فاز اول** فرانت‌اند Next.js است و
+**فاز دوم** بک‌اند Django + DRF (پوشهٔ `backend/`) که کل داده و منطق را سمت سرور
+می‌برد. مطابق طراحی، مهاجرت فقط تعویض بدنهٔ لایهٔ مخزن (Repository) بود؛ هوک‌ها و
+کامپوننت‌ها دست‌نخورده ماندند. گزارش نهایی: `docs/REPORT.md`.
 
-> Nava is a Spotify-like music streaming service built for the Web Programming
-> course. This repository delivers **Phase 1 (frontend only)** with mock data in
-> LocalStorage, designed so **Phase 2 (Django backend)** is a swap, not a rewrite.
+> Nava is a Spotify-like music streaming service for the Web Programming course.
+> **Phase 1** is the Next.js frontend; **Phase 2** is a Django + DRF backend
+> (`backend/`). Data and enforcement now live server-side; the frontend swap was
+> repository bodies only. Final report: `docs/REPORT.md`.
 
 ---
 
 ## اجرا · Running
 
+### با داکر (کل پشته با یک دستور) · With Docker
+
 ```bash
-pnpm install
-pnpm dev          # http://localhost:3000  (Turbopack)
+docker compose up --build
+# فرانت‌اند: http://localhost:3000  (به بک‌اند :8321 پروکسی می‌کند)
 ```
 
-اسکریپت‌های دیگر · Other scripts:
+### دستی · Manual
+
+```bash
+# بک‌اند (Django, پورت 8321) — نیازمند uv
+cd backend
+uv run python manage.py migrate
+uv run python manage.py seed          # دادهٔ دمو (idempotent؛ --force برای ریست)
+uv run python manage.py runserver 8321
+
+# فرانت‌اند (در ترمینال دیگر)
+pnpm install
+pnpm dev          # http://localhost:3000
+```
+
+اسکریپت‌های فرانت‌اند · Frontend scripts:
 
 ```bash
 pnpm build        # بیلد تولید (webpack — برای سرویس‌ورکر Serwist)
-pnpm start        # اجرای بیلد تولید
 pnpm lint         # ESLint
 pnpm typecheck    # tsc --noEmit
 pnpm test         # Vitest (۵۰ تست)
 ```
 
-داده‌های نمونه در اولین بارگذاری به‌طور خودکار در LocalStorage ریخته می‌شوند
-(`lib/db/seed.ts`). برای ریست، LocalStorage مرورگر را پاک کنید.
+آزمون بک‌اند · Backend tests:
+
+```bash
+cd backend && uv run pytest      # ۳۸ تست
+```
+
+دادهٔ دمو با دستور `seed` در بک‌اند ساخته می‌شود (همان شناسه‌های فاز ۱). مستندات
+API در `http://localhost:8321/api/docs/` (Swagger).
 
 ## حساب‌های نمونه · Demo accounts
 
@@ -132,9 +154,21 @@ pnpm test
 
 ---
 
-## فاز دوم (پیاده‌سازی‌نشده) · Phase 2 outlook
+## فاز دوم · Phase 2 (Django backend)
 
-مدل‌های جنگو (User/Song/Album/Playlist و …)، CRUD رست‌فول با DRF، اعمال محدودیت
-اشتراک و دسترسی نقش‌ها در سمت سرور، آپلود فایل، درگاه پرداخت، گزارش‌گیری تجمیعی.
-بدنهٔ `lib/api/*` از LocalStorage به `ky` تغییر می‌کند؛ هوک‌های Query و کامپوننت‌ها
-دست‌نخورده می‌مانند. پروکسی `/api` در `next.config.mjs` به `localhost:8321` آماده است.
+پوشهٔ `backend/` — Django 5 + DRF، مدیریت با **uv** (Python 3.12):
+
+- **مدل‌ها و CRUD رست‌فول:** accounts (User/Artist/Verification/follows/settings)،
+  catalog (Album/Track + آپلود چندبخشی + دانلود گیت‌شده)، engagement
+  (Playlist/StreamEvent/Notification)، billing، support، analytics.
+- **اعمال سمت سرور:** `core/tiers.py` آینهٔ `lib/subscriptions.ts`؛ هر گیت
+  `effective_tier` را می‌خواند. خطاهای تجاری: `۴۲۹ stream_limit`، `۴۰۳ playlist_limit`.
+- **پرداخت (الگوی Strategy):** `MockGateway` (محلی) + `ZarinpalGateway` (سندباکس)،
+  انتخاب با `PAYMENT_GATEWAY`. خرید ۱/۳/۶/۱۲ ماهه با قیمت زمان‌اجرای قابل‌ویرایش ادمین.
+- **همگام‌سازی تنظیمات، تجمیع‌های سمت سرور، و سیستم پیشنهاد (امتیازی)** در
+  `analytics/recommendations.py`.
+- **مهاجرت فرانت:** بدنهٔ `lib/api/*` از LocalStorage به `ky` تغییر کرد؛ امضاها،
+  هوک‌های Query و کامپوننت‌ها دست‌نخورده ماندند. `next.config.mjs` مسیرهای `/api` و
+  `/media` را به بک‌اند پروکسی می‌کند.
+
+جزئیات کامل، تقسیم کار و نقش هوش مصنوعی در `docs/REPORT.md`.
