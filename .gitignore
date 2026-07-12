@@ -23,6 +23,8 @@
 
 # local course spec (kept out of version control)
 *.pdf
+# ...but the final report PDF ships with the repo
+!docs/REPORT.pdf
 
 # debug
 npm-debug.log*
