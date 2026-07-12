@@ -1,0 +1,34 @@
+# One command runs the whole stack: `docker compose up --build`.
+# Frontend on http://localhost:3000 proxies /api and /media to the backend.
+services:
+  backend:
+    build: ./backend
+    environment:
+      DEBUG: "True" # lets Django serve /media; SQLite is fine for the demo
+      SECRET_KEY: "docker-demo-secret-change-me"
+      PAYMENT_GATEWAY: "mock" # flip to "zarinpal" + set ZARINPAL_MERCHANT_ID for the sandbox
+      DATABASE_PATH: "/app/data/db.sqlite3"
+      MEDIA_ROOT: "/app/media"
+      FRONTEND_URL: "http://localhost:3000" # browser-facing origin for gateway redirects
+      ALLOWED_HOSTS: "localhost,127.0.0.1,backend"
+      CSRF_TRUSTED_ORIGINS: "http://localhost:3000"
+    volumes:
+      - db-data:/app/data # SQLite persists across restarts
+      - media:/app/media # uploaded audio, covers, avatars persist
+    expose:
+      - "8321"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    environment:
+      API_ORIGIN: "http://backend:8321"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  db-data:
+  media:

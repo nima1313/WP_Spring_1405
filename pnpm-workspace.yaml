@@ -1,1 +1,8 @@
 unsafePerm: true
+# Whitelist native build scripts so `pnpm install` runs them non-interactively
+# (pnpm 10 otherwise fails with ERR_PNPM_IGNORED_BUILDS, e.g. in the Docker build).
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+  - unrs-resolver
+  - msw
